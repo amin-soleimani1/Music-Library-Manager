@@ -10,7 +10,6 @@ PROJECT_ROOT = (
     else Path(__file__).resolve().parent.parent
 )
 
-
 def resource_path(relative_path):
     return PROJECT_ROOT / relative_path
 
@@ -20,13 +19,11 @@ def get_base_path():
         return os.path.dirname(sys.executable)
     return os.getcwd()
 
-
 def get_media_path(folder_name="music_files"):
     """ایجاد و بازگرداندن مسیر پوشه رسانه"""
     path = os.path.join(get_base_path(), folder_name)
     os.makedirs(path, exist_ok=True)
     return path
-
 
 def extract_metadata(file_path):
     """استخراج متادیتا به صورت امن و یکپارچه"""
@@ -51,7 +48,6 @@ def extract_metadata(file_path):
             "file_path": file_path,
         }
 
-
 def delete_file(file_path):
     try:
         if os.path.exists(file_path):
@@ -60,12 +56,6 @@ def delete_file(file_path):
         return False
     except OSError:
         return False
-
-
-# def format_time(seconds):
-#     minutes = seconds // 60
-#     seconds = seconds % 60
-#     return f"{minutes:02d}:{seconds:02d}"
 
 def format_time(seconds):
     seconds = int(seconds)

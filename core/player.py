@@ -5,10 +5,7 @@ import os
 class MusicPlayer:
     def __init__(self):
         pygame.mixer.init()
-        self._paused = False  # for button pause & unpause
-
-    def busy(self):
-        return pygame.mixer.music.get_busy()
+        self._paused = False
 
     def play(self, file_path, start=None):
 

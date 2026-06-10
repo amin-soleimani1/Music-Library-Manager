@@ -8,14 +8,15 @@ import threading
 
 
 class Controller:
+
     def __init__(self, player, db):
 
-        # Core controller dependencies :
+        # Core controller dependencies
         self.player = player
         self.db = db
         self.ui = None
 
-        # Currently visible UI state :
+        # Currently visible UI state
         # File path of the currently selected track
         self.current_file_path = None
 
@@ -25,7 +26,7 @@ class Controller:
         # Currently selected tracks
         self.visible_tracks: list[Track] = []
 
-        # Static information for tracks, playlists, and top-levels :
+        # Static information for tracks, playlists, and top-levels
         # Information about all tracks in the database
         self.all_tracks_info: list[Track] = []
 
@@ -35,15 +36,15 @@ class Controller:
         # Dictionary for storing top-level windows
         self.top_windows = {}
 
-        # Threading: database lock (heavy operations) and progress bar updates :
+        # Threading: database lock (heavy operations) and progress bar updates
         self.db_lock = threading.Lock()
 
-    # ==»» UI → Controller ««==-----------------------------
+    # ==» UI → Controller «==-----------------------------
     def set_ui(self, ui):
         self.ui = ui
         self.on_show_all_tracks_clicked()
 
-    # ==»» Toplevels → Contriller → Toplevels ««==-----------------------------
+    # ==» Toplevels → Contriller → Toplevels «==-----------------------------
     def open_playlists_window(self):
         from ui.toplevels.playlists_window import PlaylistsWindow
 
@@ -86,7 +87,7 @@ class Controller:
         if not self.all_playlists_info:
             self.top_windows["add_to_playlist_window"]._hide_destry()
 
-    # ==»» User Events ««==-----------------------------
+    # ==» User Events «==-----------------------------
     def on_track_selected(self, filename):
 
         # Controller attributes initialization
@@ -105,9 +106,9 @@ class Controller:
         self._get_music_time_len()
 
         # Update the UI
-        self.ui.real_time.set(0)
-        self.ui.update_title(filename)
-        self.ui.update_artwork(track.artwork)
+        self.ui.current_position_var.set(0)
+        self.ui.update_track_title(filename)
+        self.ui.set_artwork(track.artwork)
         self.ui.update_pause_unpause_btn(True)
         if track.is_favorite == 1:
             self.ui.update_toggle_favorite_btn(True)
@@ -117,16 +118,16 @@ class Controller:
     
     # Update playback time, refresh UI labels, and handle track completion :
     def _get_current_time(self):
-        current_time = self.ui.real_time.get() + self.player.get_pg_postion()
+        current_time = self.ui.current_position_var.get() + self.player.get_pg_postion()
         self.ui.update_lab_current(format_time(current_time))
-        self.ui.state_var.set(current_time)
-        if current_time + 1 == self.ui.music_len.get():
+        self.ui.time_slider_position_var.set(current_time)
+        if current_time + 1 == self.ui.track_length_var.get():
             self.ui.select_main_listbox(self.current_index)
         self.ui.after(1000, self._get_current_time)
 
     def _get_music_time_len(self):
         track = self.visible_tracks[self.current_index]
-        self.ui.music_len.set(track.length)
+        self.ui.track_length_var.set(track.length)
         self.ui.update_lab_time_len(format_time(track.length))
         self.ui.update_slider_to(track.length)
     
@@ -148,7 +149,7 @@ class Controller:
         elif event.keysym == "Escape":
             self.ui.destroy()
 
-    # ==»» Playback ««==-----------------------------
+    # ==» Playback «==-----------------------------
     def on_pause_unpause_clicked(self):
         if not self.current_index is None:
             paused = self.player.pause_unpause()
@@ -186,8 +187,8 @@ class Controller:
             self.ui.reset_search_entry()
     
     def on_time_slider_clicked(self, state):
-        if self.current_index or self.current_index == 0:
-            self.ui.real_time.set(state)
+        if self.current_index is not None:
+            self.ui.current_position_var.set(state)
             self.player.play(self.current_file_path, state)
             self.ui.update_pause_unpause_btn(True)
         else:
@@ -196,13 +197,13 @@ class Controller:
     def on_volume_clicked(self, vol):
         self.player.set_volume(vol)
     
-    # ==»» Playlist ««==-----------------------------
+    # ==» Playlist «==-----------------------------
     def add_tracks_to_library(self, file_paths):
 
         if not file_paths:
             return
 
-        self.ui.show_Adding_overlay()
+        self.ui.show_progress()
 
         threading.Thread(
             target=self._add_tracks_worker, args=(file_paths,), daemon=True
@@ -280,7 +281,7 @@ class Controller:
 
     def _add_tracks_finished(self, added, skipped, errors):
 
-        self.ui.hide_loading_overlay()
+        self.ui.hide_status()
 
         self.on_show_all_tracks_clicked()
 
@@ -380,10 +381,10 @@ class Controller:
         else:
             self.top_windows["add_to_playlist_window"].show_empty_playlist_frame()
 
-    # ==»» Track Library ««==-----------------------------
+    # ==» Track Library «==-----------------------------
     def on_show_all_tracks_clicked(self):
         
-        self.ui.show_loading_overlay()
+        self.ui.show_loading()
 
         def load():
 
@@ -395,14 +396,14 @@ class Controller:
 
             self.ui.main_listbox_insert(tracks)
 
-            self.ui.hide_loading_overlay()
+            self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
     
     def on_show_favorites_tracks_clicked(self):
 
-        self.ui.show_loading_overlay()
+        self.ui.show_loading()
 
         def load():
 
@@ -414,14 +415,14 @@ class Controller:
 
             self.ui.main_listbox_insert(tracks)
 
-            self.ui.hide_loading_overlay()
+            self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
 
     def on_show_last_played_clicked(self):
 
-        self.ui.show_loading_overlay()
+        self.ui.show_loading()
 
         def load():
 
@@ -433,7 +434,7 @@ class Controller:
 
             self.ui.main_listbox_insert(tracks)
 
-            self.ui.hide_loading_overlay()
+            self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
@@ -453,7 +454,7 @@ class Controller:
         else:
             pass
             
-    # ==»» Search ««==-----------------------------
+    # ==» Search «==-----------------------------
     def search_tracks(self, query: str):
 
         query = query.lower().strip()
@@ -476,10 +477,10 @@ class Controller:
         self.visible_tracks = results
         self._refresh_visible_tracks()
 
-    # ==»» Shared Controller Helpers ««==-----------------------------
+    # ==» Shared Controller Helpers «==-----------------------------
     def _refresh_visible_tracks(self):
 
-        self.ui.show_loading_overlay()
+        self.ui.show_loading()
 
         def load():
 
@@ -489,7 +490,7 @@ class Controller:
 
             self.ui.main_listbox_insert(tracks)
 
-            self.ui.hide_loading_overlay()
+            self.ui.hide_status()
 
         self.ui.after(10, load)
     

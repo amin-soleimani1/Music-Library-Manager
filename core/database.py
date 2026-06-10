@@ -188,7 +188,7 @@ class MusicDatabase:
         cursor = self.conn.execute(query, (playlist_id,))
         return self._rows_to_tracks(cursor.fetchall())
 
-    # ==»» Shared Database Helpers ««==-----------------------------
+    # ==» Shared Database Helpers «==-----------------------------
     def _rows_to_tracks(self, rows):
         return [
             Track(
