@@ -153,22 +153,22 @@ class MusicDatabase:
         return [PlayLists(id=r[0], name=r[1]) for r in cursor.fetchall()]
     
     # » updated «
-    def update_playlist_name(self, playlists_id, new_playlists_name):
+    def update_playlist_name(self, playlist_id, new_playlist_name):
         with self.conn:
             self.conn.execute(
                 "UPDATE playlists SET playlist_name = ? WHERE playlist_id = ?",
-                (new_playlists_name, playlists_id)
+                (new_playlist_name, playlist_id)
                 )
     
     # » deleted «
-    def deleted_playlist(self, playlists_id):
+    def deleted_playlist(self, playlist_id):
         with self.conn:
             self.conn.execute(
                 "DELETE FROM playlists WHERE playlist_id = ?",
-                (playlists_id),
+                (playlist_id,),
                 )
 
-    # ==» Playlists_Tracks Table Method «==-----------------------------
+    # ==» Playlists Tracks Table Method «==-----------------------------
 
     # » inserted «
     def insert_playlist_track(self, playlist_id, music_id):

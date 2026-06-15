@@ -23,6 +23,9 @@ class Controller:
         # Index of the item currently selected in the main listbox
         self.current_index = None
 
+        # Current playback position (seconds)
+        self.seek_offset = 0
+
         # Currently selected tracks
         self.visible_tracks: list[Track] = []
 
@@ -31,7 +34,7 @@ class Controller:
         self.all_tracks_info: list[Track] = []
 
         # Information about all playlists in the database
-        self.all_playlists_info: list[PlayLists] = []
+        self.all_playlists_info: list[PlayLists] = self.db.get_all_playlist()
 
         # Dictionary for storing top-level windows
         self.top_windows = {}
@@ -44,56 +47,17 @@ class Controller:
         self.ui = ui
         self.on_show_all_tracks_clicked()
 
-    # ==» Toplevels → Contriller → Toplevels «==-----------------------------
-    def open_playlists_window(self):
-        from ui.toplevels.playlists_window import PlaylistsWindow
-
-        self.all_playlists_info = self.db.get_all_playlist()
-        playlists_name = [playlist.name for playlist in self.all_playlists_info]
-        playlists_window = PlaylistsWindow(master=self.ui, controller=self)
-        playlists_window.refresh_listbox_playlists_window(playlists_name)
-        self.top_windows["playlists_window"] = playlists_window
-        playlists_window.grab_set()
-
-    def open_create_playlist_window(self):
-        from ui.toplevels.create_playlist_window import CreatePlaylistWindow
-
-        self.all_tracks_info = self.db.get_all_tracks()
-        tracks = [track.title for track in self.all_tracks_info]
-        create_playlist_window = CreatePlaylistWindow(
-            master=self.top_windows["playlists_window"], controller=self
-        )
-        create_playlist_window.refresh(tracks)
-        self.top_windows["create_playlist_window"] = create_playlist_window
-        create_playlist_window.grab_set()
-
-    def open_track_actions_window(self):
-        from ui.toplevels.track_actions_window import TrackActionsWindow
-
-        track_actions_window = TrackActionsWindow(master=self.ui, controller=self)
-        self.top_windows["track_actions_window"] = track_actions_window
-        track_actions_window.grab_set()
-
-    def open_add_to_playlist_window(self):
-        from ui.toplevels.add_to_playlist_window import AddToPlaylistWindow
-
-        self.all_playlists_info = self.db.get_all_playlist()
-        add_to_playlist_window = AddToPlaylistWindow(
-            master=self.top_windows["track_actions_window"], controller=self
-        )
-        self.top_windows["add_to_playlist_window"] = add_to_playlist_window
-        self._load_playlists_to_add_playlist_listbox()
-        add_to_playlist_window.grab_set()
-        if not self.all_playlists_info:
-            self.top_windows["add_to_playlist_window"]._hide_destry()
-
     # ==» User Events «==-----------------------------
-    def on_track_selected(self, filename):
+    def track_selected(self, file_path=None):
 
         # Controller attributes initialization
-        self.current_index = self.ui.get_selected_index_main_listbox()
-        track = self.visible_tracks[self.current_index]
-        self.current_file_path = track.file_path
+        if file_path == None:
+            self.current_index = self.ui.get_selected_index_main_listbox()
+            track = self.visible_tracks[self.current_index]
+            self.current_file_path = track.file_path
+        else:
+            list_track, index = self._find_track_location_by_file_path(self.current_file_path)
+            track = list_track[index]
 
         # Send the track file path to the player engine
         self.player.play(track.file_path)
@@ -101,13 +65,13 @@ class Controller:
         # Update the recently played track record in the database
         self.db.update_last_played(track.track_id)
 
-        # See line 357 for details.
+        # See line 76 for details.
         self._get_current_time()
         self._get_music_time_len()
 
         # Update the UI
-        self.ui.current_position_var.set(0)
-        self.ui.update_track_title(filename)
+        self.seek_offset = 0
+        self.ui.update_track_title(track.title)
         self.ui.set_artwork(track.artwork)
         self.ui.update_pause_unpause_btn(True)
         if track.is_favorite == 1:
@@ -118,15 +82,17 @@ class Controller:
     
     # Update playback time, refresh UI labels, and handle track completion :
     def _get_current_time(self):
-        current_time = self.ui.current_position_var.get() + self.player.get_pg_postion()
-        self.ui.update_lab_current(format_time(current_time))
-        self.ui.time_slider_position_var.set(current_time)
-        if current_time + 1 == self.ui.track_length_var.get():
-            self.ui.select_main_listbox(self.current_index)
+        current_time = self.seek_offset + self.player.get_pg_postion()
+        self.ui.update_lab_current(format_time(int(current_time)))
+        self.ui.time_slider_position_var.set(int(current_time))
+        if int(current_time) == self.ui.track_length_var.get() - 1:
+            self.seek_offset = 0
+            self.track_selected(self.current_file_path)
         self.ui.after(1000, self._get_current_time)
 
     def _get_music_time_len(self):
-        track = self.visible_tracks[self.current_index]
+        list_track, index = self._find_track_location_by_file_path(self.current_file_path)
+        track = list_track[index]
         self.ui.track_length_var.set(track.length)
         self.ui.update_lab_time_len(format_time(track.length))
         self.ui.update_slider_to(track.length)
@@ -154,8 +120,6 @@ class Controller:
         if not self.current_index is None:
             paused = self.player.pause_unpause()
             self.ui.update_pause_unpause_btn(not paused)
-        else:
-            pass
     
     def on_next_track_clicked(self):
         if not self.current_index is None:
@@ -164,8 +128,6 @@ class Controller:
                 return
             next_index = self.player.next_index(current, len(self.visible_tracks) - 1)
             self.ui.select_main_listbox(next_index)
-        else:
-            pass
 
     def on_previous_track_clicked(self):
         if not self.current_index is None:
@@ -184,15 +146,14 @@ class Controller:
             self.ui.reset_ui()
             self.ui.unselect_main_listbox(self.current_index)
             self.current_index = None
+            self.current_file_path = None
             self.ui.reset_search_entry()
     
     def on_time_slider_clicked(self, state):
         if self.current_index is not None:
-            self.ui.current_position_var.set(state)
+            self.seek_offset = state
             self.player.play(self.current_file_path, state)
             self.ui.update_pause_unpause_btn(True)
-        else:
-            pass
     
     def on_volume_clicked(self, vol):
         self.player.set_volume(vol)
@@ -294,9 +255,7 @@ class Controller:
         )
 
         if index is None:
-            self.top_windows["track_actions_window"].after(
-                10, lambda: self.top_windows["track_actions_window"].destroy()
-            )
+            self.ui.hide_track_actions_frame()
             return
 
         track = track_list[index]
@@ -339,12 +298,6 @@ class Controller:
             self.current_index = None
             self.on_show_all_tracks_clicked()
 
-        if "track_actions_window" in self.top_windows:
-            try:
-                self.top_windows["track_actions_window"].destroy()
-            except Exception:
-                pass
-
     def create_playlist_with_tracks(
         self, name, tracks
     ):
@@ -353,34 +306,41 @@ class Controller:
         for t in tracks:
             track = self.all_tracks_info[t]
             self.db.insert_playlist_track(playlist_id, track.track_id)
-        self.all_playlists_info = self.db.get_all_playlist()
-        playlist_name = [playlist.name for playlist in self.all_playlists_info]
-        self.top_windows["playlists_window"].refresh_listbox_playlists_window(playlist_name)
+        playlist_name = self.get_playlist_name()
+        self.ui.refresh_listbox_playlists_frame(playlist_name)
     
-    def on_add_to_playlist_clicked(self, name):
+    def on_add_to_playlist_clicked(self, none):
         if self.current_index is not None:
-            index = self.top_windows["add_to_playlist_window"].get_idx_listbox()
+            index = self.ui.get_index_listbox()
             playlist_info = self.all_playlists_info[index]
-            track_id = self.visible_tracks[self.current_index]
+            list_track, index = self._find_track_location_by_file_path(self.current_file_path)
+            track_id = list_track[index]
             self.db.insert_playlist_track(
                 playlist_info.id,
                 track_id.track_id,
             )
-            self.top_windows["add_to_playlist_window"].after(
-                10, lambda: self.top_windows["add_to_playlist_window"].destroy()
-            )
+            self.ui.hide_add_to_playlist_frame()
+            self.ui.hide_track_actions_frame()
         else:
-            self.top_windows["add_to_playlist_window"].after(
-                10, lambda: self.top_windows["add_to_playlist_window"].destroy()
-            )
+            self.ui.hide_add_to_playlist_frame()
+            self.ui.hide_track_actions_frame()
 
-    def _load_playlists_to_add_playlist_listbox(self):
-        if self.all_playlists_info:
-            playlist_name = [playlist.name for playlist in self.all_playlists_info]
-            self.top_windows["add_to_playlist_window"].refresh(playlist_name)
-        else:
-            self.top_windows["add_to_playlist_window"].show_empty_playlist_frame()
-
+    def on_delete_playlist_clicked(self):
+        if self.ui.get_playlist_selected_index() is not None:
+            self.ui.hide_rename_frame()
+            index = self.ui.get_playlist_selected_index()
+            playlist = self.all_playlists_info[index]
+            self.db.deleted_playlist(playlist.id)
+            playlist_name = self.get_playlist_name()
+            self.ui.refresh_listbox_playlists_frame(playlist_name)
+ 
+    def rename_playlist(self, new_playlist_name):
+        index = self.ui.get_playlist_selected_index()
+        playlist = self.all_playlists_info[index]
+        self.db.update_playlist_name(playlist.id, new_playlist_name)
+        playlist_name = self.get_playlist_name()
+        self.ui.refresh_listbox_playlists_frame(playlist_name)
+        
     # ==» Track Library «==-----------------------------
     def on_show_all_tracks_clicked(self):
         
@@ -441,7 +401,8 @@ class Controller:
 
     def on_toggle_favorite_clicked(self):
         if self.current_index is not None:
-            track = self.visible_tracks[self.current_index]
+            list_track, index = self._find_track_location_by_file_path(self.current_file_path)
+            track = list_track[index]
             new_state = self.db.toggle_favorite(track.track_id)
 
             track.is_favorite = new_state
@@ -505,3 +466,13 @@ class Controller:
                 return self.all_tracks_info, index
 
         return None, None
+    
+    def get_playlist_name(self):
+        self.all_playlists_info = self.db.get_all_playlist()
+        playlist_name = [playlist.name for playlist in self.all_playlists_info]
+        return playlist_name
+    
+    def get_all_track_title(self):
+        self.all_tracks_info = self.db.get_all_tracks()
+        tracks = [track.title for track in self.all_tracks_info]
+        return tracks
