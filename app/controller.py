@@ -1,13 +1,9 @@
-import os
 import shutil
 from models.track import Track
 from models.playlist import PlayLists
 from utils.file_utils import get_media_path, extract_metadata, delete_file, format_time, save_artwork_cache
 import threading
 from pathlib import Path
-
-
-
 
 class Controller:
 
