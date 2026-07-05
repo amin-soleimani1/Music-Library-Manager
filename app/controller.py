@@ -2,9 +2,11 @@ import os
 import shutil
 from core.track import Track
 from core.playlist import PlayLists
-from utils.file_utils import get_media_path, extract_metadata, delete_file, format_time
-from utils.image_utils import save_artwork_cache
+from utils.file_utils import get_media_path, extract_metadata, delete_file, format_time, save_artwork_cache
 import threading
+from pathlib import Path
+
+
 
 
 class Controller:
@@ -23,6 +25,8 @@ class Controller:
         # Index of the item currently selected in the main listbox
         self.current_index = None
 
+        self.current_playlist_id = None
+
         # Current playback position (seconds)
         self.seek_offset = 0
 
@@ -36,11 +40,10 @@ class Controller:
         # Information about all playlists in the database
         self.all_playlists_info: list[PlayLists] = self.db.get_all_playlist()
 
-        # Dictionary for storing top-level windows
-        self.top_windows = {}
-
         # Threading: database lock (heavy operations) and progress bar updates
         self.db_lock = threading.Lock()
+
+        self.separator_state = None
 
     # ==» UI → Controller «==-----------------------------
     def set_ui(self, ui):
@@ -49,7 +52,7 @@ class Controller:
 
     # ==» User Events «==-----------------------------
     def track_selected(self, file_path=None):
-
+        
         # Controller attributes initialization
         if file_path == None:
             self.current_index = self.ui.get_selected_index_main_listbox()
@@ -71,23 +74,32 @@ class Controller:
 
         # Update the UI
         self.seek_offset = 0
-        self.ui.update_track_title(track.title)
-        self.ui.set_artwork(track.artwork)
+        self.ui.update_track_title(track.title, track.artist)
+
+        try:
+            self.ui.set_artwork(track.artwork)
+        except Exception as e:
+            print("ARTWORK ERROR:", e)
+
         self.ui.update_pause_unpause_btn(True)
         if track.is_favorite == 1:
             self.ui.update_toggle_favorite_btn(True)
         else:
             self.ui.update_toggle_favorite_btn(False)
         self.ui.reset_search_entry()
-    
+
     # Update playback time, refresh UI labels, and handle track completion :
     def _get_current_time(self):
         current_time = self.seek_offset + self.player.get_pg_postion()
         self.ui.update_lab_current(format_time(int(current_time)))
         self.ui.time_slider_position_var.set(int(current_time))
-        if int(current_time) == self.ui.track_length_var.get() - 1:
-            self.seek_offset = 0
-            self.track_selected(self.current_file_path)
+        if int(current_time) == self.ui.track_length_var.get() - 2:
+            if self.ui.repeat_mode:
+                self.seek_offset = 0
+                self.track_selected(self.current_file_path)
+            else:
+                self.on_next_track_clicked()
+
         self.ui.after(1000, self._get_current_time)
 
     def _get_music_time_len(self):
@@ -99,9 +111,11 @@ class Controller:
     
     def on_playlist_selected(self, index):
         playlist = self.all_playlists_info[index]
+        self.current_playlist_id = playlist.id
         self.visible_tracks = self.db.get_music_by_playlist(playlist.id)
         self._refresh_visible_tracks()
         self.ui.reset_search_entry()
+        self.ui.update_empty_state(self.visible_tracks, "playlist_run")
     
     def on_key_pressed(self, event):
         if event.keysym == "space":
@@ -117,9 +131,12 @@ class Controller:
 
     # ==» Playback «==-----------------------------
     def on_pause_unpause_clicked(self):
-        if not self.current_index is None:
+        if self.current_index is not None:
             paused = self.player.pause_unpause()
             self.ui.update_pause_unpause_btn(not paused)
+        else:
+            self.ui.show_hint()
+            self.ui.hide_hint()
     
     def on_next_track_clicked(self):
         if not self.current_index is None:
@@ -128,6 +145,9 @@ class Controller:
                 return
             next_index = self.player.next_index(current, len(self.visible_tracks) - 1)
             self.ui.select_main_listbox(next_index)
+        else:
+            self.ui.show_hint()
+            self.ui.hide_hint()
 
     def on_previous_track_clicked(self):
         if not self.current_index is None:
@@ -138,16 +158,21 @@ class Controller:
             prev_index = self.player.previous_index(current)
             self.ui.select_main_listbox(prev_index)
         else:
-            pass
+            self.ui.show_hint()
+            self.ui.hide_hint()
 
     def on_stop_clicked(self):
-        if not self.current_index is None:
+        if self.current_index is not None:
             self.player.stop()
-            self.ui.reset_ui()
-            self.ui.unselect_main_listbox(self.current_index)
+            self.ui.after(10, self.ui.reset_ui)
+            if self.ui.get_selected_index_main_listbox():
+                self.ui.unselect_main_listbox(self.current_index)
             self.current_index = None
             self.current_file_path = None
             self.ui.reset_search_entry()
+        else:
+            self.ui.show_hint() 
+            self.ui.hide_hint()
     
     def on_time_slider_clicked(self, state):
         if self.current_index is not None:
@@ -184,11 +209,11 @@ class Controller:
 
                 try:
 
-                    file_name = os.path.basename(src_path)
+                    file_name = Path(src_path).name
 
-                    dest_path = os.path.join(get_media_path(), file_name)
+                    dest_path = get_media_path() / file_name
 
-                    if os.path.exists(dest_path):
+                    if dest_path.exists():
                         skipped += 1
 
                     else:
@@ -201,7 +226,7 @@ class Controller:
                             errors += 1
                             continue
 
-                        meta["file_path"] = dest_path
+                        meta["file_path"] = str(dest_path)
 
                         artwork_bytes = meta.get("artwork")
                         meta["artwork"] = None
@@ -245,8 +270,7 @@ class Controller:
         self.ui.hide_status()
 
         self.on_show_all_tracks_clicked()
-
-        print(f"Added: {added}, " f"Skipped: {skipped}, " f"Errors: {errors}")
+        self.ui.show_messagebox(added, skipped, errors)
 
     def remove_track(self):
 
@@ -298,16 +322,15 @@ class Controller:
             self.current_index = None
             self.on_show_all_tracks_clicked()
 
-    def create_playlist_with_tracks(
-        self, name, tracks
-    ):
-
+    def create_playlist_with_tracks(self, name, tracks):
         playlist_id = self.db.insert_to_Playlists(name) # این تابع ایدی پلی لیست مد نظر را برمیگرداند
         for t in tracks:
             track = self.all_tracks_info[t]
             self.db.insert_playlist_track(playlist_id, track.track_id)
         playlist_name = self.get_playlist_name()
         self.ui.refresh_listbox_playlists_frame(playlist_name)
+        self.ui.update_empty_state(True, "playlists")
+
     
     def on_add_to_playlist_clicked(self, none):
         if self.current_index is not None:
@@ -327,12 +350,17 @@ class Controller:
 
     def on_delete_playlist_clicked(self):
         if self.ui.get_playlist_selected_index() is not None:
-            self.ui.hide_rename_frame()
+            self.ui.hide_playlist_deleted_frame()
             index = self.ui.get_playlist_selected_index()
             playlist = self.all_playlists_info[index]
             self.db.deleted_playlist(playlist.id)
             playlist_name = self.get_playlist_name()
             self.ui.refresh_listbox_playlists_frame(playlist_name)
+            self.ui.update_empty_state(self.all_playlists_info, "playlists")
+            if playlist.id == self.current_playlist_id:
+                self.on_show_all_tracks_clicked()
+        else:
+            self.ui.playlist_alert()
  
     def rename_playlist(self, new_playlist_name):
         index = self.ui.get_playlist_selected_index()
@@ -344,60 +372,76 @@ class Controller:
     # ==» Track Library «==-----------------------------
     def on_show_all_tracks_clicked(self):
         
+        self.ui.set_separator("all_tracks")
+        self.separator_state = "all_tracks"
+        self.ui.hide_playlists_frame()
+
+        if hasattr(self.ui, 'create_playlist_frame') and self.ui.create_playlist_frame.winfo_exists():
+            self.ui.hide_created_playlist_frame()
+
         self.ui.show_loading()
 
+        self.all_tracks_info = self.db.get_all_tracks()
+        self.visible_tracks = self.all_tracks_info
+        tracks = [song.title for song in self.visible_tracks]
+
         def load():
-
             self.ui.main_listbox_del()
-
-            self.all_tracks_info = self.db.get_all_tracks()
-            self.visible_tracks = self.all_tracks_info
-            tracks = [song.title for song in self.visible_tracks]
-
             self.ui.main_listbox_insert(tracks)
-
             self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
+
+        self.ui.update_empty_state(self.visible_tracks, "all_tracks")
     
     def on_show_favorites_tracks_clicked(self):
 
+        self.ui.set_separator("favorites")
+        self.separator_state = "favorites"
+        self.ui.hide_playlists_frame()
+
+        if hasattr(self.ui, 'create_playlist_frame') and self.ui.create_playlist_frame.winfo_exists():
+            self.ui.hide_created_playlist_frame()
+
         self.ui.show_loading()
 
+        self.visible_tracks = self.db.get_favourite_tracks()
+        tracks = [song.title for song in self.visible_tracks]
+
         def load():
-
             self.ui.main_listbox_del()
-
-            self.visible_tracks = self.db.get_favourite_tracks()
-
-            tracks = [song.title for song in self.visible_tracks]
-
             self.ui.main_listbox_insert(tracks)
-
             self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
+        
+        self.ui.update_empty_state(self.visible_tracks, "favorites")
 
     def on_show_last_played_clicked(self):
 
+        self.ui.set_separator("recently_played")
+        self.separator_state = "recently_played"
+        self.ui.hide_playlists_frame()
+
+        if hasattr(self.ui, 'create_playlist_frame') and self.ui.create_playlist_frame.winfo_exists():
+            self.ui.hide_created_playlist_frame()
+
         self.ui.show_loading()
 
+        self.visible_tracks = self.db.get_last_played()
+        tracks = [song.title for song in self.visible_tracks]
+
         def load():
-
             self.ui.main_listbox_del()
-
-            self.visible_tracks = self.db.get_last_played()
-
-            tracks = [song.title for song in self.visible_tracks]
-
             self.ui.main_listbox_insert(tracks)
-
             self.ui.hide_status()
 
         self.ui.after(10, load)
         self.ui.reset_search_entry()
+
+        self.ui.update_empty_state(self.visible_tracks, "all_tracks")
 
     def on_toggle_favorite_clicked(self):
         if self.current_index is not None:
@@ -413,11 +457,13 @@ class Controller:
                 self.ui.update_toggle_favorite_btn(False)
             self.ui.reset_search_entry()
         else:
-            pass
+            self.ui.show_hint()
+            self.ui.hide_hint()
             
     # ==» Search «==-----------------------------
     def search_tracks(self, query: str):
 
+        self.ui.set_separator(None)
         query = query.lower().strip()
 
         # Search tracks by title.
@@ -437,6 +483,7 @@ class Controller:
 
         self.visible_tracks = results
         self._refresh_visible_tracks()
+        self.ui.update_empty_state(self.visible_tracks, "searching")
 
     # ==» Shared Controller Helpers «==-----------------------------
     def _refresh_visible_tracks(self):
@@ -469,7 +516,12 @@ class Controller:
     
     def get_playlist_name(self):
         self.all_playlists_info = self.db.get_all_playlist()
-        playlist_name = [playlist.name for playlist in self.all_playlists_info]
+        playlist_name = []
+        for playlist in self.all_playlists_info:
+            if self.db.get_music_by_playlist(playlist.id):
+                playlist_name.append(playlist.name)
+            else:
+                self.db.deleted_playlist(playlist.id)
         return playlist_name
     
     def get_all_track_title(self):

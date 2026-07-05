@@ -1,6 +1,5 @@
 import sqlite3
-from pathlib import Path
-
+from utils.file_utils import app_data_path
 from core.track import Track
 from core.playlist import PlayLists
 
@@ -12,6 +11,7 @@ class MusicDatabase:
         CREATE TABLE IF NOT EXISTS tracks (
             track_id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
+            artist TEXT,
             length INTEGER,
             file_path TEXT UNIQUE,
             artwork TEXT,
@@ -41,12 +41,7 @@ class MusicDatabase:
 
     def __init__(self, db_name="music_library.db"):
 
-        # database file path
-        project_root = Path(__file__).parent.parent
-        data_dir = project_root / "data"
-        data_dir.mkdir(exist_ok=True)
-        db_path = data_dir / db_name
-
+        db_path = app_data_path() / db_name
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.create_tables()
 
@@ -62,10 +57,10 @@ class MusicDatabase:
     def insert_track(self, meta):
         query = """
             INSERT OR IGNORE INTO tracks
-            (title,file_path, length, artwork)
-            VALUES (?, ?, ?, ?)
+            (title, artist, file_path, length, artwork)
+            VALUES (?, ?, ?, ?, ?)
         """
-        metadata = (meta["title"], meta["file_path"], meta["length"], meta["artwork"])
+        metadata = (meta["title"], meta["artist"], meta["file_path"], meta["length"], meta["artwork"])
         with self.conn:
             cur = self.conn.execute(query, metadata)
         if cur.rowcount == 0:
@@ -75,13 +70,13 @@ class MusicDatabase:
     # » readed «
     def get_all_tracks(self):
         cursor = self.conn.execute(
-            "SELECT track_id, title, is_favorite, file_path, length, artwork FROM tracks"
+            "SELECT track_id, title, artist, is_favorite, file_path, length, artwork FROM tracks"
         )
         return self._rows_to_tracks(cursor.fetchall())
 
     def get_favourite_tracks(self):
         query = """
-            SELECT track_id, title, is_favorite, file_path, length, artwork FROM tracks
+            SELECT track_id, title, artist, is_favorite, file_path, length, artwork FROM tracks
             WHERE is_favorite = 1
             ORDER BY last_played DESC
         """
@@ -90,7 +85,7 @@ class MusicDatabase:
 
     def get_last_played(self):
         query = """
-            SELECT track_id, title, is_favorite, file_path, length, artwork FROM tracks
+            SELECT track_id, title, artist, is_favorite, file_path, length, artwork FROM tracks
             WHERE last_played IS NOT NULL
             ORDER BY last_played DESC LIMIT 10
         """
@@ -181,7 +176,7 @@ class MusicDatabase:
     # » readed «
     def get_music_by_playlist(self, playlist_id):
         query = """
-            SELECT tracks.track_id, tracks.title, tracks.is_favorite, tracks.file_path, tracks.length, tracks.artwork FROM tracks
+            SELECT tracks.track_id, tracks.title, tracks.artist, tracks.is_favorite, tracks.file_path, tracks.length, tracks.artwork FROM tracks
             JOIN playlist_track ON tracks.track_id = playlist_track.track_id
             WHERE playlist_track.playlist_id = ?
         """
@@ -194,13 +189,12 @@ class MusicDatabase:
             Track(
                 track_id=r[0],
                 title=r[1],
-                is_favorite=bool(r[2]),
-                file_path=r[3],
-                length=r[4],
-                artwork=r[5],
+                artist=r[2],
+                is_favorite=bool(r[3]),
+                file_path=r[4],
+                length=r[5],
+                artwork=r[6],
             )
             for r in rows
         ]
     
-if __name__ == "__main__":
-    db = MusicDatabase()

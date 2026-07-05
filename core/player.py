@@ -3,6 +3,7 @@ import os
 
 
 class MusicPlayer:
+    
     def __init__(self):
         pygame.mixer.init()
         self._paused = False
@@ -12,8 +13,9 @@ class MusicPlayer:
         if file_path and os.path.exists(file_path):
             try:
                 pygame.mixer.music.load(file_path)
+                
                 if start is not None:
-                    pygame.mixer.music.play(start=start)  # برای شروع از نقطه مد نظر
+                    pygame.mixer.music.play(start=start)
                     self.set_volume(1)
                 else:
                     pygame.mixer.music.play()

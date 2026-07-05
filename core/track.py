@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class Track:
     track_id: int
     title: str
+    artist: str
     is_favorite: bool
     file_path: str
     length: int
