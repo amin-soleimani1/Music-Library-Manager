@@ -1,7 +1,7 @@
 import sqlite3
 from utils.file_utils import app_data_path
-from core.track import Track
-from core.playlist import PlayLists
+from models.track import Track
+from models.playlist import PlayLists
 
 
 class MusicDatabase:
