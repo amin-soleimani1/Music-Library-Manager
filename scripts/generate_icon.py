@@ -2,13 +2,10 @@ from PIL import Image, ImageDraw
 
 img = Image.open("assets/images/icon.jpg").convert("RGBA")
 
-# اندازه تصویر
 size = img.size
 
-# شعاع گوشه‌ها
 radius = 150
 
-# ساخت ماسک گرد
 mask = Image.new("L", size, 0)
 
 draw = ImageDraw.Draw(mask)
@@ -18,7 +15,6 @@ draw.rounded_rectangle(
     fill=255
 )
 
-# اعمال شفافیت گوشه‌ها
 img.putalpha(mask)
 
 img.save(
