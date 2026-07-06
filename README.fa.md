@@ -15,7 +15,7 @@
 ## 🔗 مسیر پروژه
 
 ⬅️ **نسخه قبلی**
-[Music Player](https://github.com/amin-soleimani1/music-player-basic)     
+[موزیک پلیر (نسخه پایه)](https://github.com/amin-soleimani1/music-player-basic)     
 ➡️ **نسخه بعدی**
 Music Management Platform (به‌زودی)
 
