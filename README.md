@@ -78,6 +78,11 @@ Instead of starting from scratch, this project was built by iterating on an exis
 - Store playlists in SQLite database
 - Manage playlist contents
 
+## Smart Song Search
+
+* 🔍 Search songs by name
+* Fuzzy search that suggests the closest match when a partial song name is entered
+
 ## ▶ Playback Controls
 - Play / Pause
 - Previous / Next
@@ -230,6 +235,10 @@ During development, I gained a deeper understanding of:
 Most importantly, I learned that software development is not just about adding features, but about continuously improving structure, readability, and maintainability.
 
 ---
+
+## Requirements
+- Python 3.10+ (tested on 3.10, 3.11, 3.12)
+
 
 # 🚀 Installation
 
