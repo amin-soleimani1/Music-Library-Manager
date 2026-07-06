@@ -42,17 +42,17 @@ Instead of starting from scratch, this project was built by iterating on an exis
 
 ### Main Interface
 <p align="center">
-  <img src="assets/images/Screenshot 1.png" width="3000"/>
+  <img src="assets/images/Screenshot 1.png" width="800"/>
 </p>
 
 ### Playlist View
 <p align="center">
-  <img src="assets/images/Screenshot 2.png" width="3000"/>
+  <img src="assets/images/Screenshot 2.png" width="800"/>
 </p>
 
 ### Demo
 <p align="center">
-  <img src="assets/images/demo_gif.gif" width="3000"/>
+  <img src="assets/images/demo_gif.gif" width="800"/>
 </p>
 
 ---
