@@ -1,6 +1,6 @@
 ## Music Library Manager
 
-> 📌 Part of the Music Engineering Journey  
+> 📌 Part of the Music Engineering Journey
 > [Roadmap](https://github.com/amin-soleimani1/music-engineering-journey)
 
 🌐 **Language:** English | [فارسی](README.fa.md)
