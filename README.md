@@ -93,8 +93,6 @@ Instead of starting from scratch, this project was built by iterating on an exis
 - Fully redesigned UI
 - Improved user experience
 - Cleaner navigation structure
-- More modular UI architecture
-
 ---
 
 # 🧠 Architecture
