@@ -1,6 +1,6 @@
 # مدیر کتابخانه موسیقی
 
->📌 بخشی از مسیر Music Engineering Journey     
+>📌 بخشی از مسیر یادگیری مهندسی نرم‌افزار موسیقی     
 >[مسیر توسعه](https://github.com/amin-soleimani1/music-engineering-journey)
 
 🌐 **زبان**: فارسی | [English](README.md)
