@@ -244,7 +244,7 @@ Most importantly, I learned that software development is not just about adding f
 
 Clone the repository:
 ```bash
-git clone <https://github.com/amin-soleimani1/Music-Library-Manager.git>
+git clone https://github.com/amin-soleimani1/Music-Library-Manager.git
 ```
 
 Create a virtual environment:
