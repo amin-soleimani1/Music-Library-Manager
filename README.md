@@ -38,7 +38,7 @@ Instead of starting from scratch, this project was built by iterating on an exis
 
 ---
 
-# 🖼 Preview
+# Preview
 
 ### Main Interface
 <p align="center">
