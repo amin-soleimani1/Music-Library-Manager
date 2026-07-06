@@ -15,7 +15,7 @@
 ## 🔗 مسیر پروژه
 
 ⬅️ **نسخه قبلی**
-[Music Player Basic](https://github.com/amin-soleimani1/music-player-basic)     
+[Music Player](https://github.com/amin-soleimani1/music-player-basic)     
 ➡️ **نسخه بعدی**
 Music Management Platform (به‌زودی)
 
@@ -25,7 +25,7 @@ Music Management Platform (به‌زودی)
 | نسخه | تمرکز اصلی |
 |----------|------------|
 | 🎵 Music Player | توسعه رابط کاربری، پخش موسیقی، معماری اولیه |
-| 📚 Music Library Manager | کار با SQLite، معماری MVC، ریفکتور کد، بهبود تجربه کاربری، ساختار ماژولار |
+| 📚 Music Library Manager | SQLiteکار با MVC، معماری ، ریفکتور کد، بهبود تجربه کاربری، ساختار ماژولار |
 
 بجای شروع یک پروژه جدید، این پروژه با بهبود و بازطراحی نسخه قبلی ساخته شده تا تجربه واقعی‌تری از بهبود و توسعه یک کدبیس موجود ایجاد شود.
 
