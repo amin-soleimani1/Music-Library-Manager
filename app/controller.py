@@ -319,7 +319,7 @@ class Controller:
             self.on_show_all_tracks_clicked()
 
     def create_playlist_with_tracks(self, name, tracks):
-        playlist_id = self.db.insert_to_Playlists(name) # این تابع ایدی پلی لیست مد نظر را برمیگرداند
+        playlist_id = self.db.insert_to_Playlists(name)
         for t in tracks:
             track = self.all_tracks_info[t]
             self.db.insert_playlist_track(playlist_id, track.track_id)

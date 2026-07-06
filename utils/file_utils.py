@@ -10,7 +10,8 @@ import os
 
 def get_base_path() -> Path:
     """
-   (PyInstaller سازگار با محیط توسعه و) مسیر منابع برنامه 
+    Returns the absolute path to a project resource.
+    Compatible with both development mode and PyInstaller builds.
     """
     if getattr(sys, "frozen", False):
         return Path(sys._MEIPASS)
@@ -23,8 +24,8 @@ BASE_PATH = get_base_path()
 
 def resource_path(relative_path: str | Path) -> Path:
     """
-   (assets) مسیر فایل‌های همراه برنامه 
-    مثل آیکون‌ها و تصاویر رابط کاربری
+    Returns the path to application resources,
+    such as icons and UI images.
     """
     return BASE_PATH / relative_path
 
@@ -33,8 +34,8 @@ def resource_path(relative_path: str | Path) -> Path:
 
 def app_data_path() -> Path:
     """
-    مسیر دائمی اطلاعات برنامه
-   cache شامل دیتابیس، موزیک‌ها و 
+    Permanent storage path for application data,
+    including the database and cache.
     """
     
     base = Path(
@@ -52,7 +53,7 @@ def app_data_path() -> Path:
 
 def get_media_path(folder_name="music_files") -> Path:
     """
-    مسیر ذخیره فایل‌های موزیک
+    Returns the path to the directory where music files are stored.
     """
 
     path = app_data_path() / folder_name
@@ -64,7 +65,7 @@ def get_media_path(folder_name="music_files") -> Path:
 
 def delete_file(file_path: str | Path) -> bool:
     """
-    حذف امن فایل
+    Safely deletes the specified file.
     """
     path = Path(file_path)
     if path.exists() and path.is_file():
@@ -77,7 +78,7 @@ def delete_file(file_path: str | Path) -> bool:
 
 def format_time(seconds: int) -> str:
     """
-   MM:SS تبدیل ثانیه به 
+    Converts seconds to MM:SS format.
     """
     seconds = int(seconds or 0)
     minutes, sec = divmod(seconds, 60)
@@ -88,7 +89,7 @@ def format_time(seconds: int) -> str:
 
 def extract_metadata(file_path: str | Path) -> dict:
     """
-    استخراج متادیتای فایل موزیک
+    Extracts metadata and artwork from a music file.
     """
     path = Path(file_path)
 
@@ -127,7 +128,8 @@ def extract_metadata(file_path: str | Path) -> dict:
 
 def save_artwork_cache(artwork_bytes: bytes, track_id: str | int) -> str | None:
     """
-   cached image ذخیره کاور موزیک به صورت 
+    Saves the extracted artwork as a cached image
+    and returns its file path.
     """
     if not artwork_bytes:
         return None
@@ -143,7 +145,7 @@ def save_artwork_cache(artwork_bytes: bytes, track_id: str | int) -> str | None:
         image = Image.open(io.BytesIO(artwork_bytes))
         image.load()
 
-        # resize اگر خیلی بزرگ بود
+        # Resize if the image is too large.
         if image.width > 1000 or image.height > 1000:
             image.thumbnail((1000, 1000), Image.Resampling.LANCZOS)
 

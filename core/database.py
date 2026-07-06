@@ -93,7 +93,18 @@ class MusicDatabase:
         return self._rows_to_tracks(cursor.fetchall())
 
     # » updated «
-    def toggle_favorite(self, track_id):
+    def toggle_favorite(self, track_id: int) -> int:
+        """
+        Retrieves the current value of the 'favorite' field for a record from the database,
+        toggles it between 0 and 1 (0 ↔ 1), saves the updated value back to the database,
+        and finally returns the updated value.
+
+        This function is used to change the state of a binary favorite flag and allows the
+        returned value to be used in other parts of the application (e.g., conditional logic).
+
+        Returns:
+            int: The updated value of the 'favorite' field (0 or 1).
+        """
         cursor = self.conn.execute(
             "SELECT is_favorite FROM tracks WHERE track_id = ?", (track_id,)
         )
@@ -103,7 +114,6 @@ class MusicDatabase:
             current_status = row[0]
             new_status = 1 if current_status == 0 else 0
 
-            # حالا آپدیت کن
             query = "UPDATE tracks SET is_favorite = ? WHERE track_id = ?"
             with self.conn:
                 self.conn.execute(query, (new_status, track_id))
@@ -135,7 +145,8 @@ class MusicDatabase:
     # ==» Playlists Table Method «==-----------------------------
 
     # » inserted «
-    def insert_to_Playlists(self, playlist_name):
+    def insert_to_Playlists(self, playlist_name: str) -> int:
+        "this function returns the ID of the desired playlist."
         with self.conn:
             cur = self.conn.execute(
                 "INSERT OR IGNORE INTO playlists (playlist_name) VALUES (?)", (playlist_name,)
