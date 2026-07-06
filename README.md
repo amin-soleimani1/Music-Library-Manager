@@ -273,7 +273,7 @@ React (Frontend)
 PostgreSQL     
 AI-powered features in later stages     
 
-# 📄 License
+---
 
 This project is created for educational purposes.     
 Feel free to explore, learn from, and reuse ideas from this repository.
