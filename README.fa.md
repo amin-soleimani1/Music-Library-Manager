@@ -1,4 +1,4 @@
-# 🎵 Music Library Manager
+## Music Library Manager
 
 >📌 بخشی از مسیر Music Engineering Journey     
 >[مسیر توسعه](https://github.com/amin-soleimani1/music-engineering-journey)
