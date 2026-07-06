@@ -6,7 +6,7 @@
 🌐 **زبان**: فارسی | [English](README.md)
 
 
-## فاز ۲ — اپلیکیشن دسکتاپ مبتنی بر دیتابیس
+## فاز ۲ — اپلیکیشن دسکتاپ مبتنی بر پایگاه داده
 
  یک اپلیکیشن دسکتاپ مدیریت کتابخانه موسیقی که با استفاده از Python، CustomTkinter و SQLite ساخته شده است.
 
@@ -197,7 +197,7 @@ Music Library Manager/
 
 کلون کردن پروژه:
 ```bash
-git clone <repository-url>
+git clone git clone https://github.com/amin-soleimani1/Music-Library-Manager.git
 ```
 
 ساخت محیط مجازی:
